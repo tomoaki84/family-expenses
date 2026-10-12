@@ -596,7 +596,7 @@ function exportToSpreadsheet() {
   sheet.clear(); // 既存データ・書式を上書きクリア
 
   // グリッド線の表示
-  sheet.setHideGridlines(false);
+  sheet.setHiddenGridlines(false);
 
   // 4. 未精算サマリーの集計
   const unsettled = allExpenses.filter(e => e.settlement_status === '未精算');
