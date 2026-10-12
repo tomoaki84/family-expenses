@@ -157,19 +157,43 @@ def parse_sheet1(xlsx_path):
             else:
                 parsed_date = last_date
 
-            # 割合の正規化
+            # 割合の正規化（ExcelのG列およびJ・K列の調整額式から正確に判定）
             ratio = '6:4' # デフォルト
+            try: j_val = float(j_tomo_adj) if j_tomo_adj else 0.0
+            except: j_val = 0.0
+            try: k_val = float(k_yasu_adj) if k_yasu_adj else 0.0
+            except: k_val = 0.0
+
+            if r_num < 50:
+                excel_adj = round(j_val)
+            elif r_num == 100:
+                excel_adj = -880
+            else:
+                excel_adj = round(j_val) if j_val != 0 else -round(k_val)
+
             if ratio_raw in ['5:5?', '5:5？', '5:5']:
                 ratio = '5:5'
-            elif ratio_raw in ['6:4?', '6:4']:
-                ratio = '6:4'
             elif '1:2' in ratio_raw:
                 ratio = '1:2'
-            elif r_num == 111: # ワイシャツ (家族カードだが智明私物)
-                ratio = '智明全額'
-            elif r_num in [10, 23, 24, 25]: # 化粧品、コスメなど
-                # Excelの調整式で女性私物または独自割合
-                ratio = '6:4'
+            elif payer == '家族カード' and amount > 0:
+                if abs(excel_adj - round(amount * 0.4)) <= 2:
+                    ratio = '智明全額'
+                elif abs(excel_adj - (-round(amount * 0.6))) <= 2:
+                    ratio = '康子全額'
+                elif abs(excel_adj - (-round(amount * 0.1))) <= 2:
+                    ratio = '5:5'
+                else:
+                    ratio = '6:4'
+            elif payer == '康子' and amount > 0:
+                if abs(excel_adj - round(amount * 0.5)) <= 2:
+                    ratio = '5:5'
+                elif abs(excel_adj - amount) <= 2:
+                    ratio = '智明全額'
+            elif payer == '智明' and amount > 0:
+                if abs(excel_adj - (-round(amount * 0.5))) <= 2:
+                    ratio = '5:5'
+                elif abs(excel_adj - (-amount)) <= 2:
+                    ratio = '康子全額'
             
             # 負担額の算出
             tomo_share, yasu_share = calculate_shares(amount, ratio)

@@ -473,13 +473,33 @@ function cancelLastExpense(senderName) {
 }
 
 /**
+ * 1件の支出に対する「精算調整額」を算出（ExcelのJ列・K列の計算式に準拠）
+ * - 家族カード口座は「ことら入金（智明60%:康子40%）」で既に6:4の共有資金になっている前提
+ *   - 智明全額の買い物 ➔ 智明が40%（康子資金分）を精算 (+0.4)
+ *   - 康子全額の買い物 ➔ 康子が60%（智明資金分）を精算 (-0.6)
+ *   - 5:5の買い物 ➔ 康子が10%を精算 (-0.1)
+ *   - 6:4の共通買い物 ➔ 精算0円（調整不要）
+ */
+function calculateItemAdjustment(exp) {
+  if (exp.payer === '家族カード') {
+    const familyCardTomoakiFunded = Math.round(exp.amount * 0.6);
+    const tomoakiAdj = exp.tomoaki_amount - familyCardTomoakiFunded;
+    return { tomoakiAdj: tomoakiAdj, yasukoAdj: -tomoakiAdj };
+  } else if (exp.payer === '智明') {
+    return { tomoakiAdj: -exp.yasuko_amount, yasukoAdj: exp.yasuko_amount };
+  } else {
+    return { tomoakiAdj: exp.tomoaki_amount, yasukoAdj: -exp.tomoaki_amount };
+  }
+}
+
+/**
  * 未精算サマリーの取得
  */
 function getSettlementSummary() {
   const sbUrl = getEnv('SUPABASE_URL');
   const sbKey = getEnv('SUPABASE_ANON_KEY');
 
-  const url = `${sbUrl}/rest/v1/expenses?settlement_status=eq.未精算&select=payer,tomoaki_amount,yasuko_amount`;
+  const url = `${sbUrl}/rest/v1/expenses?settlement_status=eq.未精算&select=amount,payer,tomoaki_amount,yasuko_amount`;
   const options = {
     method: 'get',
     headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
@@ -496,12 +516,8 @@ function getSettlementSummary() {
 
   let netTomoakiToYasuko = 0;
   for (const exp of rows) {
-    const effectivePayer = exp.payer === '家族カード' ? '智明' : exp.payer;
-    if (effectivePayer === '智明') {
-      netTomoakiToYasuko -= exp.yasuko_amount;
-    } else {
-      netTomoakiToYasuko += exp.tomoaki_amount;
-    }
+    const adj = calculateItemAdjustment(exp);
+    netTomoakiToYasuko += adj.tomoakiAdj;
   }
 
   let summaryText = '';
@@ -524,9 +540,17 @@ function buildSuccessReply(records, liffUrl) {
 
   let text = `✅ 登録しました！（${records.length}件）\n━━━━━━━━━━━━━━\n`;
   for (const r of records) {
+    const adj = calculateItemAdjustment(r);
+    let adjStr = '精算なし (¥0)';
+    if (adj.tomoakiAdj > 0) {
+      adjStr = `智明 ➔ 康子 ¥${adj.tomoakiAdj.toLocaleString()}`;
+    } else if (adj.tomoakiAdj < 0) {
+      adjStr = `康子 ➔ 智明 ¥${(-adj.tomoakiAdj).toLocaleString()}`;
+    }
     text += `【内容】${r.title}\n`;
     text += `【金額】¥${r.amount.toLocaleString()} (${r.payer})\n`;
     text += `【負担】智明 ¥${r.tomoaki_amount.toLocaleString()} / 康子 ¥${r.yasuko_amount.toLocaleString()} (${r.split_ratio})\n`;
+    text += `【精算】${adjStr}\n`;
     if (r.memo) text += `【メモ】${r.memo}\n`;
     text += `──────────────────\n`;
   }
@@ -604,12 +628,8 @@ function exportToSpreadsheet() {
   let unsettledTotal = 0;
   for (const exp of unsettled) {
     unsettledTotal += exp.amount;
-    const effectivePayer = exp.payer === '家族カード' ? '智明' : exp.payer;
-    if (effectivePayer === '智明') {
-      netTomoakiToYasuko -= exp.yasuko_amount;
-    } else {
-      netTomoakiToYasuko += exp.tomoaki_amount;
-    }
+    const adj = calculateItemAdjustment(exp);
+    netTomoakiToYasuko += adj.tomoakiAdj;
   }
 
   let directionText = '精算なし';
@@ -726,19 +746,10 @@ function exportToSpreadsheet() {
       else if (exp.payer === '智明') eTomo = exp.amount;
       else if (exp.payer === '康子') fYasu = exp.amount;
 
-      // 調整額の計算（智明・康子）
-      // 家族カード(智明口座) or 智明立替: 智明調整 = -yasuko_amount, 康子調整 = +yasuko_amount
-      // 康子立替: 智明調整 = +tomoaki_amount, 康子調整 = -tomoaki_amount
-      let jAdj = 0;
-      let kAdj = 0;
-      const effectivePayer = exp.payer === '家族カード' ? '智明' : exp.payer;
-      if (effectivePayer === '智明') {
-        jAdj = -exp.yasuko_amount;
-        kAdj = exp.yasuko_amount;
-      } else {
-        jAdj = exp.tomoaki_amount;
-        kAdj = -exp.tomoaki_amount;
-      }
+      // 調整額の計算（Excel J列・K列方式）
+      const adj = calculateItemAdjustment(exp);
+      const jAdj = adj.tomoakiAdj;
+      const kAdj = adj.yasukoAdj;
 
       // 精算ステータス表示
       let statusStr = exp.settlement_status;

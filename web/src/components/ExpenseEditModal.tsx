@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Expense, Payer, SplitRatio } from '../lib/types';
-import { calculateSplit } from '../lib/calculator';
+import { calculateSplit, calculateItemAdjustment } from '../lib/calculator';
 import { X, Trash2, Check } from 'lucide-react';
 
 interface ExpenseEditModalProps {
@@ -53,6 +53,12 @@ export const ExpenseEditModal: React.FC<ExpenseEditModalProps> = ({
   if (!isOpen) return null;
 
   const shares = calculateSplit(amount, splitRatio);
+  const { tomoakiAdj } = calculateItemAdjustment({
+    amount,
+    payer,
+    tomoaki_amount: shares.tomoakiAmount,
+    yasuko_amount: shares.yasukoAmount,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,12 +198,22 @@ export const ExpenseEditModal: React.FC<ExpenseEditModalProps> = ({
             </select>
           </div>
 
-          {/* 負担プレビュー */}
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-            <div className="text-[11px] font-semibold text-slate-500 mb-1">負担額の計算結果:</div>
+          {/* 負担・精算プレビュー */}
+          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1.5">
+            <div className="text-[11px] font-semibold text-slate-500">負担額・精算調整の計算結果:</div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-700">智明: <strong className="text-slate-900">¥{shares.tomoakiAmount.toLocaleString()}</strong></span>
-              <span className="text-slate-700">康子: <strong className="text-slate-900">¥{shares.yasukoAmount.toLocaleString()}</strong></span>
+              <span className="text-slate-700">智明負担: <strong className="text-slate-900">¥{shares.tomoakiAmount.toLocaleString()}</strong></span>
+              <span className="text-slate-700">康子負担: <strong className="text-slate-900">¥{shares.yasukoAmount.toLocaleString()}</strong></span>
+            </div>
+            <div className="pt-1.5 border-t border-slate-200/80 flex justify-between items-center text-xs">
+              <span className="text-slate-500">精算調整 (Excel式):</span>
+              {tomoakiAdj > 0 ? (
+                <span className="font-bold text-sky-700">智明が払う: ¥{tomoakiAdj.toLocaleString()}</span>
+              ) : tomoakiAdj < 0 ? (
+                <span className="font-bold text-pink-700">康子が払う: ¥{(-tomoakiAdj).toLocaleString()}</span>
+              ) : (
+                <span className="font-semibold text-slate-500">精算なし (¥0 / 口座6:4一致)</span>
+              )}
             </div>
           </div>
 

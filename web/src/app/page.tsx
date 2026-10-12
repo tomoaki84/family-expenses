@@ -170,8 +170,7 @@ function MainContent() {
 
   // 要精算額の計算
   const unsettledList = expenses.filter((e) => e.settlement_status === '未精算');
-  const familyCardPayer = settings['family_card_payer'] || '智明';
-  const settlement: NetSettlement = calculateNetSettlement(unsettledList, familyCardPayer);
+  const settlement: NetSettlement = calculateNetSettlement(unsettledList);
 
   // 一括精算処理
   const handleSettleAll = async () => {
@@ -244,7 +243,7 @@ function MainContent() {
     }
   };
 
-  // 支出の削除
+  // 支出の削除（単一）
   const handleDeleteExpense = async (id: string) => {
     if (!isSupabaseConfigured()) {
       setExpenses((prev) => prev.filter((e) => e.id !== id));
@@ -257,6 +256,49 @@ function MainContent() {
       await fetchData();
     } catch (err) {
       console.error('Delete expense failed:', err);
+      throw err;
+    }
+  };
+
+  // 支出の一括削除（複数選択）
+  const handleBulkDeleteExpenses = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!isSupabaseConfigured()) {
+      const idSet = new Set(ids);
+      setExpenses((prev) => prev.filter((e) => !idSet.has(e.id)));
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('expenses').delete().in('id', ids);
+      if (error) throw error;
+      await fetchData();
+    } catch (err) {
+      console.error('Bulk delete failed:', err);
+      throw err;
+    }
+  };
+
+  // ステータスの一括変更（単一トグル・複数一括共通）
+  const handleBulkUpdateStatus = async (ids: string[], status: '未精算' | '精算済') => {
+    if (ids.length === 0) return;
+    if (!isSupabaseConfigured()) {
+      const idSet = new Set(ids);
+      setExpenses((prev) =>
+        prev.map((e) => (idSet.has(e.id) ? { ...e, settlement_status: status } : e))
+      );
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .update({ settlement_status: status })
+        .in('id', ids);
+      if (error) throw error;
+      await fetchData();
+    } catch (err) {
+      console.error('Bulk status update failed:', err);
       throw err;
     }
   };
@@ -279,9 +321,16 @@ function MainContent() {
 
   return (
     <>
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onAddNewExpense={() => {
+          setEditingExpense(null);
+          setIsModalOpen(true);
+        }}
+      />
 
-      <main className="flex-1 p-4 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-6 overflow-y-auto">
         {loading ? (
           <div className="py-20 text-center text-xs text-slate-400">
             データを読み込み中...
@@ -301,12 +350,15 @@ function MainContent() {
                   setEditingExpense(null);
                   setIsModalOpen(true);
                 }}
+                onDeleteExpense={handleDeleteExpense}
+                onNavigateToList={() => setActiveTab('list')}
               />
             )}
 
             {activeTab === 'list' && (
               <ExpenseListTab
                 expenses={expenses}
+                defaultSplitRatio={settings['default_split_ratio'] || '6:4'}
                 onEditExpense={(exp) => {
                   setEditingExpense(exp);
                   setIsModalOpen(true);
@@ -315,6 +367,10 @@ function MainContent() {
                   setEditingExpense(null);
                   setIsModalOpen(true);
                 }}
+                onQuickSaveExpense={handleSaveExpense}
+                onDeleteExpense={handleDeleteExpense}
+                onBulkDeleteExpenses={handleBulkDeleteExpenses}
+                onBulkUpdateStatus={handleBulkUpdateStatus}
               />
             )}
 

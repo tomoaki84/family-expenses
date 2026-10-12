@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="antialiased min-h-screen bg-slate-100 flex justify-center">
-        <div className="w-full max-w-md bg-slate-50 min-h-screen flex flex-col shadow-xl">
+        <div className="w-full max-w-md md:max-w-6xl bg-slate-50 min-h-screen flex flex-col shadow-xl">
           {children}
         </div>
       </body>
