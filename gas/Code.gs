@@ -57,6 +57,29 @@ function handleTextMessage(event) {
     senderName = settings['default_payer'] || '智明';
   }
 
+  // 2-B. LINEユーザーIDのワンタップ自動登録コマンド
+  if (['私は智明', '智明です', '智明登録'].includes(userMessage)) {
+    const ok = saveAppSetting('tomoaki_line_user_id', lineUserId);
+    replyToLine(
+      replyToken,
+      ok
+        ? `✅ このLINEアカウントを【智明】として登録しました！\n\nこれからは支払者の名前を省略して「スーパー 3200」のように送るだけで、自動的に【智明】の支払いとして記録されます。`
+        : '⚠️ ユーザーIDの登録に失敗しました。'
+    );
+    return;
+  }
+
+  if (['私は康子', '康子です', '康子登録'].includes(userMessage)) {
+    const ok = saveAppSetting('yasuko_line_user_id', lineUserId);
+    replyToLine(
+      replyToken,
+      ok
+        ? `✅ このLINEアカウントを【康子】として登録しました！\n\nこれからは支払者の名前を省略して「スーパー 3200」のように送るだけで、自動的に【康子】の支払いとして記録されます。`
+        : '⚠️ ユーザーIDの登録に失敗しました。'
+    );
+    return;
+  }
+
   // 3. 即時取消・キャンセルコマンドの判定
   if (['取消', 'キャンセル', 'とりけし'].includes(userMessage)) {
     const cancelResult = cancelLastExpense(senderName);
@@ -350,6 +373,41 @@ function getAppSettings() {
     console.error('Fetch app_settings failed:', e);
   }
   return {};
+}
+
+/**
+ * Supabase app_settings 保存（upsert）
+ */
+function saveAppSetting(key, value) {
+  const sbUrl = getEnv('SUPABASE_URL');
+  const sbKey = getEnv('SUPABASE_ANON_KEY');
+  if (!sbUrl || !sbKey) return false;
+
+  const url = `${sbUrl}/rest/v1/app_settings`;
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      'apikey': sbKey,
+      'Authorization': `Bearer ${sbKey}`,
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    payload: JSON.stringify({
+      key: key,
+      value: value,
+      updated_at: new Date().toISOString()
+    }),
+    muteHttpExceptions: true
+  };
+
+  try {
+    const res = UrlFetchApp.fetch(url, options);
+    const code = res.getResponseCode();
+    return code === 200 || code === 201 || code === 204;
+  } catch (e) {
+    console.error('Save app_settings failed:', e);
+    return false;
+  }
 }
 
 /**
