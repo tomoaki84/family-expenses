@@ -76,13 +76,43 @@ function MainContent() {
   const [editingExpense, setEditingExpense] = useState<Partial<Expense> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // URLパラメータ（?tab=settings など）の反映
+  // URLパラメータ（?tab=settings や LINE LIFF特有の ?liff.state=%3Ftab%3Dsettings など）の反映
   useEffect(() => {
-    const tabParam = searchParams.get('tab');
+    let tabParam = searchParams.get('tab');
+    let editId = searchParams.get('edit');
+
+    // LINE LIFF 経由のリダイレクト時、パラメータは liff.state 内に格納される
+    const liffState = searchParams.get('liff.state');
+    if (liffState) {
+      try {
+        const decoded = decodeURIComponent(liffState);
+        const queryPart = decoded.includes('?') ? decoded.split('?')[1] : decoded.replace(/^\//, '');
+        const stateParams = new URLSearchParams(queryPart);
+        if (!tabParam && stateParams.get('tab')) {
+          tabParam = stateParams.get('tab');
+        }
+        if (!editId && stateParams.get('edit')) {
+          editId = stateParams.get('edit');
+        }
+        if (!tabParam && ['dashboard', 'list', 'analytics', 'settings'].includes(decoded.replace(/^[/#?]+/, ''))) {
+          tabParam = decoded.replace(/^[/#?]+/, '');
+        }
+      } catch (e) {
+        console.warn('Failed to parse liff.state:', e);
+      }
+    }
+
+    // URLハッシュ (#settings 等) のフォールバック
+    if (!tabParam && typeof window !== 'undefined' && window.location.hash) {
+      const hashVal = window.location.hash.replace('#', '');
+      if (['dashboard', 'list', 'analytics', 'settings'].includes(hashVal)) {
+        tabParam = hashVal;
+      }
+    }
+
     if (tabParam && ['dashboard', 'list', 'analytics', 'settings'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     }
-    const editId = searchParams.get('edit');
     if (editId && expenses.length > 0) {
       const target = expenses.find((e) => e.id === editId);
       if (target) {
