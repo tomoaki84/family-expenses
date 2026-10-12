@@ -96,9 +96,8 @@ function handleTextMessage(event) {
 
   // 5. スプレッドシート出力コマンドの判定 (直接判定)
   if (['スプレッドシート', 'スプシ', 'エクスポート', '書き出し', 'シート出力', 'スプレッドシート更新', 'シート更新', 'スプシ更新'].includes(userMessage)) {
-    replyToLine(replyToken, '📑 スプレッドシートを更新中...少々お待ちください。');
     const exportResult = exportToSpreadsheet();
-    pushToLine(lineUserId, exportResult);
+    replyToLine(replyToken, exportResult);
     return;
   }
 
@@ -121,9 +120,8 @@ function handleTextMessage(event) {
   }
 
   if (geminiResult.action === 'export_spreadsheet') {
-    replyToLine(replyToken, '📑 スプレッドシートを更新中...少々お待ちください。');
     const exportResult = exportToSpreadsheet();
-    pushToLine(lineUserId, exportResult);
+    replyToLine(replyToken, exportResult);
     return;
   }
 
@@ -550,13 +548,14 @@ function buildSuccessReply(records, liffUrl) {
  * ==============================================================================
  */
 function exportToSpreadsheet() {
-  const sbUrl = getEnv('SUPABASE_URL');
-  const sbKey = getEnv('SUPABASE_ANON_KEY');
-  let ssId = getEnv('SPREADSHEET_ID');
+  try {
+    const sbUrl = getEnv('SUPABASE_URL');
+    const sbKey = getEnv('SUPABASE_ANON_KEY');
+    let ssId = getEnv('SPREADSHEET_ID');
 
-  if (!sbUrl || !sbKey) {
-    return '⚠️ Supabaseの接続設定が見つかりません。';
-  }
+    if (!sbUrl || !sbKey) {
+      return '⚠️ Supabaseの接続設定が見つかりません。';
+    }
 
   // 1. スプレッドシートの取得または自動生成
   let ss = null;
@@ -804,19 +803,21 @@ function exportToSpreadsheet() {
     sheet.getRange(`L7:L${totalRowIdx}`).setHorizontalAlignment('center');
   }
 
-  // 10. 列幅の自動最適化
-  for (let c = 1; c <= 13; c++) {
-    sheet.autoResizeColumn(c);
-    // 最小幅の確保
-    if (sheet.getColumnWidth(c) < 70) {
-      sheet.setColumnWidth(c, 70);
+    // 10. 列幅の最適化（高速設定）
+    const colWidths = [160, 120, 95, 95, 95, 95, 75, 95, 95, 100, 100, 90, 180];
+    for (let c = 0; c < colWidths.length; c++) {
+      sheet.setColumnWidth(c + 1, colWidths[c]);
     }
+    SpreadsheetApp.flush();
+
+    // スプレッドシートURL
+    const ssUrl = ss.getUrl();
+
+    return `📑 スプレッドシートのエクスポートが完了しました！\n━━━━━━━━━━━━━━\n【総件数】${allExpenses.length} 件 (未精算: ${unsettled.length} 件)\n【要精算額】${directionText} : ¥${netAmount.toLocaleString()}\n【更新シート】支出調整\n━━━━━━━━━━━━━━\n👇 こちらから開けます:\n${ssUrl}`;
+  } catch (err) {
+    console.error('Export Error:', err);
+    return `⚠️ スプレッドシート出力中にエラーが発生しました:\n${err.message}\n\n(※初回のみGAS画面上部で「testExportToSpreadsheet」を選んで「実行」を押し、Googleスプレッドシートへのアクセス権限を承認してください)`;
   }
-
-  // スプレッドシートURL
-  const ssUrl = ss.getUrl();
-
-  return `📑 スプレッドシートを最新データに上書き更新しました！\n━━━━━━━━━━━━━━\n【総件数】${allExpenses.length} 件 (未精算: ${unsettled.length} 件)\n【要精算額】${directionText} : ¥${netAmount.toLocaleString()}\n【更新シート】支出調整\n━━━━━━━━━━━━━━\n👇 こちらから閲覧できます:\n${ssUrl}`;
 }
 
 /**
