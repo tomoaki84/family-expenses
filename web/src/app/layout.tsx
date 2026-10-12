@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "夫婦間支出調整",
-  description: "LINE Bot & LIFF による夫婦の支出調整システム",
+  title: "支出調整",
+  description: "LINE Bot & LIFF による支出調整システム",
 };
 
 export const viewport: Viewport = {

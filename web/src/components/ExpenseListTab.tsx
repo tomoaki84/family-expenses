@@ -30,7 +30,7 @@ interface ExpenseListTabProps {
   onBulkUpdateStatus?: (ids: string[], status: SettlementStatus) => Promise<void>;
 }
 
-const CATEGORIES = ['食費', '日用品', '家電', '医療費', '子供/教育', '光熱費/固定費', '家具/衣服', '交通/旅行', 'その他'];
+const CATEGORIES = ['食費', '日用品', '家電', '医療費', '子供/教育', '光熱費/固定費', '家具/衣服', '交通/旅行', '収入/入金', 'その他'];
 const RATIOS: { label: string; value: SplitRatio }[] = [
   { label: '6:4 (智6:康4)', value: '6:4' },
   { label: '5:5 (折半)', value: '5:5' },
@@ -672,7 +672,13 @@ export const ExpenseListTab: React.FC<ExpenseListTabProps> = ({
 
                       {/* カテゴリ */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px]">
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[11px] font-medium ${
+                            exp.category === '収入/入金'
+                              ? 'bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
                           {exp.category || 'その他'}
                         </span>
                       </td>
@@ -848,7 +854,15 @@ export const ExpenseListTab: React.FC<ExpenseListTabProps> = ({
                     {exp.category && (
                       <>
                         <span>·</span>
-                        <span className="text-slate-400">{exp.category}</span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded ${
+                            exp.category === '収入/入金'
+                              ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                              : 'text-slate-400'
+                          }`}
+                        >
+                          {exp.category}
+                        </span>
                       </>
                     )}
                   </div>

@@ -277,7 +277,7 @@ function parseWithGemini(userText, senderName, defaultRatio) {
      - 「康子全額」「康子負担」-> "康子全額"（家族カード決済と推定）
    - custom_tomoaki_amount / custom_yasuko_amount: 「智明5000 康子2500」等の実額割り勘指定時に設定。
    - date: YYYY-MM-DD形式。「昨日」「一昨日」「10/5」等の相対・月日表記は本日の日付（${todayStr}）を基準に正確な日付へ変換。省略時は本日の日付。
-   - category: "食費", "日用品", "家電", "医療費", "子供/教育", "光熱費/固定費", "交通/旅行", "その他" から最も適切なものを選択。
+   - category: "食費", "日用品", "家電", "医療費", "子供/教育", "光熱費/固定費", "家具/衣服", "交通/旅行", "収入/入金", "その他" から最も適切なものを選択（ことら入金・送金、給付金、祝い金等は "収入/入金"）。
    - memo: 補足情報や割引内容。
    - entry_type: "expense" (支出), "income_offset" (相殺受領), "kotora_charge" (ことら家族口座入金), "kotora_settle" (ことら精算送金)。`;
 
@@ -310,7 +310,7 @@ function parseWithGemini(userText, senderName, defaultRatio) {
                 custom_tomoaki_amount: { type: 'INTEGER' },
                 custom_yasuko_amount: { type: 'INTEGER' },
                 date: { type: 'STRING' },
-                category: { type: 'STRING', enum: ['食費', '日用品', '家電', '医療費', '子供/教育', '光熱費/固定費', '交通/旅行', 'その他'] },
+                category: { type: 'STRING', enum: ['食費', '日用品', '家電', '医療費', '子供/教育', '光熱費/固定費', '家具/衣服', '交通/旅行', '収入/入金', 'その他'] },
                 memo: { type: 'STRING' },
                 entry_type: { type: 'STRING', enum: ['expense', 'income_offset', 'kotora_charge', 'kotora_settle'] }
               },

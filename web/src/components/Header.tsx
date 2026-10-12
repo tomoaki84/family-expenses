@@ -25,8 +25,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onAddNe
           <div className="flex items-center space-x-2.5">
             <span className="text-xl md:text-2xl">💳</span>
             <div>
-              <h1 className="text-base md:text-lg font-bold text-slate-900 leading-tight">夫婦間支出調整</h1>
-              <p className="text-[11px] text-slate-500">智明 & 康子</p>
+              <h1 className="text-base md:text-lg font-bold text-slate-900 leading-tight">支出調整</h1>
             </div>
           </div>
 

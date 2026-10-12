@@ -59,6 +59,8 @@ def guess_category(title):
         return '交通/旅行'
     if any(k in t for k in ['洋服', 'ワイシャツ', '靴下', '衣類', '服', '引き出し', '机', '椅子', 'ケーブル']):
         return '家具/衣服'
+    if any(k in t for k in ['ことら', '送金', '入金', '給付金', '一時金', '還付金']):
+        return '収入/入金'
     return 'その他'
 
 def calculate_shares(amount, ratio):

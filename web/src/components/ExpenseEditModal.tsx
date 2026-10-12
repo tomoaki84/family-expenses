@@ -13,7 +13,7 @@ interface ExpenseEditModalProps {
   onDelete?: (id: string) => Promise<void>;
 }
 
-const CATEGORIES = ['食費', '日用品', '家電', '医療費', '子供/教育', '光熱費/固定費', '家具/衣服', '交通/旅行', 'その他'];
+const CATEGORIES = ['食費', '日用品', '家電', '医療費', '子供/教育', '光熱費/固定費', '家具/衣服', '交通/旅行', '収入/入金', 'その他'];
 const RATIOS: { label: string; value: SplitRatio }[] = [
   { label: '6:4 (智明6:康子4)', value: '6:4' },
   { label: '5:5 (折半)', value: '5:5' },

@@ -65,7 +65,7 @@ describe('calculateNetSettlement', () => {
     expect(net.amount).toBe(1000);
   });
 
-  it('家族カード決済（智明引落）が正しく智明立替として処理されること', () => {
+  it('家族カード決済（6:4）は既に6:4共有資金のため精算なしになること', () => {
     const dummyExpenses: Partial<Expense>[] = [
       {
         payer: '家族カード',
@@ -76,8 +76,23 @@ describe('calculateNetSettlement', () => {
     ];
 
     const net = calculateNetSettlement(dummyExpenses as Expense[]);
+    expect(net.direction).toBe('精算なし');
+    expect(net.amount).toBe(0);
+  });
+
+  it('家族カード決済で康子全額の場合、康子が智明共有資金分（60%）を精算すること', () => {
+    const dummyExpenses: Partial<Expense>[] = [
+      {
+        payer: '家族カード',
+        amount: 10000,
+        tomoaki_amount: 0,
+        yasuko_amount: 10000,
+      }
+    ];
+
+    const net = calculateNetSettlement(dummyExpenses as Expense[]);
     expect(net.direction).toBe('康子 ➔ 智明');
-    expect(net.amount).toBe(1584);
+    expect(net.amount).toBe(6000);
   });
 
   it('出産一時金受領（マイナス支出）によって相殺還元されること', () => {
